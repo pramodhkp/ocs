@@ -1,0 +1,5 @@
+langgraph
+langchain-google-genai
+python-dotenv
+# Assuming these versions are compatible. If specific versions are needed, they should be specified.
+# e.g., langgraph==0.0.29 langchain-google-genai==0.0.4 python-dotenv==0.21.0
