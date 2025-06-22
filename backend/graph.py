@@ -55,19 +55,20 @@ workflow.add_node("add_summary_entry", lambda state, new_summary_input: add_summ
 workflow.add_node("generate_retrospective_summary", summarize_daily_entries_node)
 
 # Edges
-# The graph will have two main entry points that the Flask app will use:
-# 1. To add a daily summary: Call 'add_summary_entry' node.
-# 2. To generate a retrospective: Call 'generate_retrospective_summary' node.
-# These calls will be made with appropriate state management (e.g., using thread_id for persistence).
+# To satisfy compilation, we need at least one entry point and path.
+# 'add_summary_entry' will be our primary entry point for graph invocation.
+workflow.set_entry_point("add_summary_entry")
 
-# Setting a start and end isn't strictly necessary if Flask calls specific nodes.
-# However, for a graph that can run sequentially:
-# workflow.set_entry_point("add_summary_entry") # This would need an input schema
-# workflow.add_edge("add_summary_entry", END) # Or to another processing step
+# After adding a summary, the graph will end. The state is persisted by the checkpointer.
+workflow.add_edge("add_summary_entry", END)
 
-# For our use case, the Flask app will manage the sequence:
-# - Call 'add_summary_entry' with input.
-# - Separately, call 'generate_retrospective_summary'.
+# 'generate_retrospective_summary' is not directly connected via an edge from 'add_summary_entry'
+# in this flow because it's triggered by a separate API call in app.py.
+# The Flask app loads the state and calls this node's function directly or could
+# potentially invoke it if the graph was structured with it as an alternative entry point
+# or reachable via conditional edges from a router node.
+# For now, making 'add_summary_entry' -> END satisfies the graph compilation requirement
+# for the way app_graph.invoke is used in app.py for adding summaries.
 
 # Compile the graph (can be done once in app.py)
 # app_graph = workflow.compile()
