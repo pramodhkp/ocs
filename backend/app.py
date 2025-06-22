@@ -1,5 +1,6 @@
 import os
 from flask import Flask, jsonify, request
+from flask_cors import CORS # Import CORS
 from dotenv import load_dotenv
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -10,6 +11,7 @@ load_dotenv()
 from graph import workflow, GraphState # Make sure graph.py is importable
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:5173"]) # Enable CORS for a specific origin
 
 # Configure Gemini API Key (ensure it's set in .env or environment)
 gemini_api_key = os.getenv("GEMINI_API_KEY")
