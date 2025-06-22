@@ -39,7 +39,7 @@ export const submitDailySummary = async (summaryPayload: DailySummaryPayload): P
       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
     return await response.json();
-  } catch (error), {
+  } catch (error) {
     console.error('Failed to submit daily summary:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return { message: '', current_summary_count: 0, error: errorMessage };
