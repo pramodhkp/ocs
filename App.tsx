@@ -7,7 +7,7 @@ import { Sidebar } from './components/Sidebar';
 import { DisplayModeToggle } from './components/DisplayModeToggle';
 import { RetrospectiveSummary, TagInsightItem, TrendDataPoint, Alert, DisplayMode, AppTab, StatisticalInsightsData, TopTagCountItem, ItemTypeCountItem, DailyTrendItem, OncallLoadDistributionItem } from './types';
 // import { generateRetrospectiveSummary, generateCustomTagInsight } from './services/geminiService'; // Commented out
-import { submitDailySummary, getRetrospectiveSummary } from './services/backendService'; // New backend service
+import { submitDailySummary, getRetrospectiveSummary, getMockDailySummaries, getMockRetrospectiveSummaries } from './services/backendService'; // New backend service
 import { EXAMPLE_ALERT_TAGS } from './constants';
 
 import { RetrospectiveSummaryView } from './components/views/RetrospectiveSummaryView';

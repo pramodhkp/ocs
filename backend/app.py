@@ -125,3 +125,65 @@ if __name__ == '__main__':
     # Make sure to set FLASK_APP=app.py (or your filename) in your environment
     # And FLASK_DEBUG=1 for development mode
     app.run(debug=True, port=5000) # Default Flask port is 5000
+
+
+# --- Mock Data Endpoints ---
+import random # Added random import
+from datetime import datetime, timedelta
+from .mock_data_generator import generate_mock_daily_summary, generate_mock_retrospective_summary, generate_mock_daily_summary_item # Added item generator for tags
+
+# Store generated mock data in memory for consistent responses across calls during a session
+# In a real scenario with a DB, this wouldn't be needed or would be handled differently.
+MOCK_DAILY_SUMMARIES_CACHE = []
+MOCK_RETROSPECTIVE_SUMMARIES_CACHE = []
+CACHE_INITIALIZED = False
+
+def initialize_mock_cache():
+    global MOCK_DAILY_SUMMARIES_CACHE, MOCK_RETROSPECTIVE_SUMMARIES_CACHE, CACHE_INITIALIZED
+    if CACHE_INITIALIZED:
+        return
+
+    # Generate some daily summaries for the past 7 days
+    start_date = datetime.now() - timedelta(days=6)
+    for i in range(7):
+        current_date = (start_date + timedelta(days=i)).strftime("%Y-%m-%d")
+        MOCK_DAILY_SUMMARIES_CACHE.append(generate_mock_daily_summary(current_date, num_items=random.randint(3, 8)))
+
+    # Generate a few retrospective summaries based on the daily ones
+    if len(MOCK_DAILY_SUMMARIES_CACHE) >= 3:
+        # Retro 1: last 3 days, random 2 tags
+        retro_start_1 = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
+        retro_end_1 = (datetime.now() - timedelta(days=0)).strftime("%Y-%m-%d")
+        relevant_daily_1 = [ds for ds in MOCK_DAILY_SUMMARIES_CACHE if retro_start_1 <= ds["date"] <= retro_end_1]
+        if relevant_daily_1:
+            tags_1 = random.sample(generate_mock_daily_summary_item()["tags"], k=min(2, len(generate_mock_daily_summary_item()["tags"]))) # Use tags from generator
+            MOCK_RETROSPECTIVE_SUMMARIES_CACHE.append(
+                generate_mock_retrospective_summary(relevant_daily_1, tags_1, retro_start_1, retro_end_1)
+            )
+
+    if len(MOCK_DAILY_SUMMARIES_CACHE) >= 5:
+        # Retro 2: 5 days ago to 3 days ago, specific tags
+        retro_start_2 = (datetime.now() - timedelta(days=4)).strftime("%Y-%m-%d")
+        retro_end_2 = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
+        relevant_daily_2 = [ds for ds in MOCK_DAILY_SUMMARIES_CACHE if retro_start_2 <= ds["date"] <= retro_end_2]
+        if relevant_daily_2:
+            tags_2 = ["Database", "Performance"] # Example specific tags
+            MOCK_RETROSPECTIVE_SUMMARIES_CACHE.append(
+                generate_mock_retrospective_summary(relevant_daily_2, tags_2, retro_start_2, retro_end_2)
+            )
+    CACHE_INITIALIZED = True
+
+
+@app.route('/api/mock/daily_summaries', methods=['GET'])
+def get_mock_daily_summaries():
+    initialize_mock_cache()
+    # Allow specifying number of summaries, default to all cached
+    count = request.args.get('count', default=len(MOCK_DAILY_SUMMARIES_CACHE), type=int)
+    return jsonify(MOCK_DAILY_SUMMARIES_CACHE[:count])
+
+@app.route('/api/mock/retrospective_summaries', methods=['GET'])
+def get_mock_retrospective_summaries():
+    initialize_mock_cache()
+    # Allow specifying number of summaries, default to all cached
+    count = request.args.get('count', default=len(MOCK_RETROSPECTIVE_SUMMARIES_CACHE), type=int)
+    return jsonify(MOCK_RETROSPECTIVE_SUMMARIES_CACHE[:count])

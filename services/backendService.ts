@@ -66,3 +66,54 @@ export const getRetrospectiveSummary = async (): Promise<RetrospectiveResponse> 
     return { summary: '', source_summary_count: 0, error: errorMessage };
   }
 };
+
+// --- New service functions for mock data ---
+import { DailySummary, GeneratedRetrospectiveSummary } from '../types'; // Adjust path as needed
+
+/**
+ * Fetches mock daily summaries from the backend.
+ * @param count Optional number of summaries to fetch.
+ * @returns A promise that resolves to an array of DailySummary objects.
+ */
+export const getMockDailySummaries = async (count?: number): Promise<DailySummary[]> => {
+  try {
+    const url = new URL(`${BASE_URL}/mock/daily_summaries`);
+    if (count !== undefined) {
+      url.searchParams.append('count', String(count));
+    }
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Network response was not ok' }));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+    return await response.json() as DailySummary[];
+  } catch (error) {
+    console.error('Failed to fetch mock daily summaries:', error);
+    // Return an empty array or re-throw, depending on desired error handling
+    return [];
+  }
+};
+
+/**
+ * Fetches mock retrospective summaries from the backend.
+ * @param count Optional number of summaries to fetch.
+ * @returns A promise that resolves to an array of GeneratedRetrospectiveSummary objects.
+ */
+export const getMockRetrospectiveSummaries = async (count?: number): Promise<GeneratedRetrospectiveSummary[]> => {
+  try {
+    const url = new URL(`${BASE_URL}/mock/retrospective_summaries`);
+    if (count !== undefined) {
+      url.searchParams.append('count', String(count));
+    }
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Network response was not ok' }));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+    return await response.json() as GeneratedRetrospectiveSummary[];
+  } catch (error) {
+    console.error('Failed to fetch mock retrospective summaries:', error);
+    // Return an empty array or re-throw
+    return [];
+  }
+};
