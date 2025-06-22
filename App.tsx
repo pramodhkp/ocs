@@ -6,7 +6,8 @@ import { ErrorDisplay } from './components/ErrorDisplay';
 import { Sidebar } from './components/Sidebar';
 import { DisplayModeToggle } from './components/DisplayModeToggle';
 import { RetrospectiveSummary, TagInsightItem, TrendDataPoint, Alert, DisplayMode, AppTab, StatisticalInsightsData, TopTagCountItem, ItemTypeCountItem, DailyTrendItem, OncallLoadDistributionItem } from './types';
-import { generateRetrospectiveSummary, generateCustomTagInsight } from './services/geminiService';
+// import { generateRetrospectiveSummary, generateCustomTagInsight } from './services/geminiService'; // Commented out
+import { submitDailySummary, getRetrospectiveSummary } from './services/backendService'; // New backend service
 import { EXAMPLE_ALERT_TAGS } from './constants';
 
 import { RetrospectiveSummaryView } from './components/views/RetrospectiveSummaryView';
@@ -161,121 +162,63 @@ const App: React.FC = () => {
     });
   };
 
-  const processAndSetSummaryData = (summary: RetrospectiveSummary) => {
-    setOverallSummaryText(summary.overallSummaryText);
-    const initialPromotedIds = new Set<string>();
+  // processAndSetSummaryData might need to be simplified if backend only returns overallSummaryText
+  // For now, this function is not directly called by the new backend data flow for overall summary.
+  // It's kept for potential use if detailed insights are re-introduced from backend.
+  // const processAndSetSummaryData = (summary: RetrospectiveSummary) => {
+  //   setOverallSummaryText(summary.overallSummaryText);
+  //   const initialPromotedIds = new Set<string>();
 
-    const processedTopInsights = summary.topInsights.map((insight, index) => {
-      const id = insight.id || generateInsightId(insight.tags, 'api-top', index);
-      initialPromotedIds.add(id);
-      return { ...insight, id };
-    });
+  //   const processedTopInsights = summary.topInsights.map((insight, index) => {
+  //     const id = insight.id || generateInsightId(insight.tags, 'api-top', index);
+  //     initialPromotedIds.add(id);
+  //     return { ...insight, id };
+  //   });
 
-    const processedDetailedInsights = summary.detailedInsights.map((insight, index) => {
-      const id = insight.id || generateInsightId(insight.tags, 'api-detailed', index);
-      return { ...insight, id };
-    });
+  //   const processedDetailedInsights = summary.detailedInsights.map((insight, index) => {
+  //     const id = insight.id || generateInsightId(insight.tags, 'api-detailed', index);
+  //     return { ...insight, id };
+  //   });
     
-    setAllApiInsights([...processedTopInsights, ...processedDetailedInsights]);
-    setPromotedInsightIds(initialPromotedIds);
-  };
+  //   setAllApiInsights([...processedTopInsights, ...processedDetailedInsights]);
+  //   setPromotedInsightIds(initialPromotedIds);
+  // };
 
-
-  const fetchInitialData = useCallback(async () => {
+  const fetchBackendRetrospective = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    setCustomInsightError(null); 
-    setSelectedInsightForSidebar(null); 
     try {
-      if (!process.env.API_KEY || process.env.API_KEY === "YOUR_GEMINI_API_KEY") {
-        console.warn("Missing or placeholder API_KEY. Generating mock data instead of calling Gemini API.");
-        const mockSummary: RetrospectiveSummary = {
-          overallSummaryText: "This is a mock overall summary. The oncall shift saw a variety of alerts, with a significant number of noisy alerts from the payment service. Several alerts required manual intervention due to lack of automation. Key focus areas for improvement are reducing noise and enhancing automation playbooks. The Payment Gateway had several latency spikes mid-week, culminating in a brief outage on Thursday.",
-          topInsights: [
-            { 
-              tags: ["Noisy", "Payment Service"], 
-              count: 25, 
-              summary: "High volume of noisy alerts from Payment Service, primarily due to transient network issues.", 
-              recommendation: "Investigate and implement more robust filtering or self-healing for Payment Service alerts.",
-              exampleAlertTitles: ["Payment API latency high", "Payment GW Error Rate Spike"],
-              trendData: generateMockTrendData(20),
-              alertNotesSummary: "Engineers noted these often correlated with brief upstream provider blips. Most self-resolved within 5 minutes.",
-              detailedAlerts: generateMockAlerts(3, "Payment Service Latency Spike", "Warning"),
-              suggestedAction: { 
-                displayText: "Review Payment Service Alerting Rules", 
-                actionUrl: "https://wiki.example-company.com/ops/payment-service-alerting" 
-              }
-            },
-            { 
-              tags: ["No Automation"], 
-              count: 10, 
-              summary: "Multiple critical alerts lacked automated recovery procedures, requiring manual intervention.", 
-              recommendation: "Prioritize development of automation playbooks for these critical alert types.",
-              exampleAlertTitles: ["DB Primary Node Down", "Cache Cluster Evictions High"],
-              trendData: generateMockTrendData(8),
-              alertNotesSummary: "Manual intervention for DB node failover took an average of 15 minutes. Cache eviction alerts required manual scaling.",
-              detailedAlerts: generateMockAlerts(2, "DB Primary Node Down", "Critical"),
-              suggestedAction: { 
-                displayText: "Create JIRA for 'No Automation' Playbook Development", 
-                actionUrl: "https://jira.example-company.com/secure/CreateIssue!default.jspa?project=SRE&summary=Develop%20Automation%20Playbooks" 
-              }
-            },
-          ],
-          detailedInsights: [
-            { 
-              tags: ["Noisy"], 
-              count: 42, 
-              summary: "Noisy alerts constituted a significant portion of the total alert volume across multiple services.", 
-              exampleAlertTitles: ["CPU utilization > 95% on worker-3"], 
-              recommendation: "Implement alert fatigue reduction strategies such as dynamic thresholds or improved alert grouping.",
-              trendData: generateMockTrendData(35),
-              alertNotesSummary: "Majority of CPU alerts were transient spikes not correlating with user impact. Consider adjusting thresholds or observation windows.",
-              detailedAlerts: generateMockAlerts(4, "Noisy CPU Spike", "Warning"),
-              suggestedAction: { 
-                displayText: "Analyze Sources of Noisy CPU Alerts", 
-                actionUrl: "https://dashboard.example-company.com/d/cpu-noise/analysis" 
-              }
-            },
-            { 
-              tags: ["Customer Impact"], 
-              count: 2, 
-              summary: "Two critical alerts directly indicated potential customer impact, one related to checkout failures.", 
-              exampleAlertTitles: ["Checkout service unavailable"], 
-              recommendation: "Prioritize RCA and implement fixes for customer-impacting alerts. Review monitoring for earlier detection.",
-              trendData: generateMockTrendData(1),
-              alertNotesSummary: "Checkout failure was due to a misconfiguration pushed in the last release. Rollback resolved the issue. Impact estimated at 500 users.",
-              detailedAlerts: generateMockAlerts(1, "Checkout Service Unavailable", "Critical"),
-              suggestedAction: { 
-                displayText: "Initiate Post-Incident Review for Checkout Failure",
-              }
-            },
-          ],
-        };
-        const mockStats = generateMockStatisticalData();
-        await new Promise(resolve => setTimeout(resolve, 1000)); 
-        processAndSetSummaryData(mockSummary);
-        setStatisticalData(mockStats);
+      const backendResult = await getRetrospectiveSummary();
+      if (backendResult.error) {
+        setError(backendResult.error);
+        setOverallSummaryText(''); // Clear previous summary on error
       } else {
-        const summary = await generateRetrospectiveSummary();
-        const stats = generateMockStatisticalData(); // Using mock stats for now
-        processAndSetSummaryData(summary);
-        setStatisticalData(stats);
+        setOverallSummaryText(backendResult.summary);
+        // For now, we are not populating detailed/promoted insights from this call.
+        // Clear them or handle them as per new requirements.
+        setAllApiInsights([]);
+        setPromotedInsightIds(new Set());
       }
+      // Mock statistical data can still be loaded if needed
+      const mockStats = generateMockStatisticalData();
+      setStatisticalData(mockStats);
+
     } catch (err) {
-      console.error("Failed to fetch initial data:", err);
-      setError(err instanceof Error ? err.message : "An unknown error occurred fetching data. Check console.");
+      console.error("Failed to fetch backend retrospective:", err);
+      setError(err instanceof Error ? err.message : "An unknown error occurred fetching retrospective. Check console.");
+      setOverallSummaryText('');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // Add dependencies if any state used inside changes and should trigger re-fetch
 
   useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
+    fetchBackendRetrospective();
+  }, [fetchBackendRetrospective]); // Ensure this runs on mount and when the function reference changes (it shouldn't if defined well)
 
   const handleGenerateCustomInsight = async (selectedTags: string[]) => {
     if (selectedTags.length === 0) {
-      setCustomInsightError("Please select at least one tag to generate an insight.");
+      setCustomInsightError("Please select at least one tag to generate an insight / daily summary.");
       return;
     }
     setIsGeneratingCustomInsight(true);
@@ -285,43 +228,45 @@ const App: React.FC = () => {
     }
 
     try {
-      let newInsight: TagInsightItem;
-      if (!process.env.API_KEY || process.env.API_KEY === "YOUR_GEMINI_API_KEY") {
-        console.warn("Missing or placeholder API_KEY. Generating MOCK custom insight.");
-         await new Promise(resolve => setTimeout(resolve, 1500)); 
-        newInsight = {
-            tags: selectedTags,
-            count: Math.floor(Math.random() * 10) + 1,
-            summary: `This is a mock custom insight for tags: ${selectedTags.join(', ')}. It highlights a simulated scenario where these conditions co-occurred.`,
-            recommendation: "Mock recommendation: Further investigate the correlation between these tags and refine monitoring.",
-            exampleAlertTitles: [`Mock Alert for ${selectedTags[0]}`],
-            trendData: generateMockTrendData(Math.floor(Math.random() * 5) + 2),
-            alertNotesSummary: "Mock alert notes: Engineers observed this pattern during peak hours and suspect resource contention.",
-            detailedAlerts: generateMockAlerts(2, `Mock Custom ${selectedTags[0]}`, Math.random() > 0.5 ? "Warning" : "Critical"),
-            suggestedAction: {
-              displayText: `Explore Runbook for ${selectedTags.join(' & ')}`,
-              actionUrl: `https://wiki.example-company.com/runbooks/${selectedTags.join('-').toLowerCase()}`
-            }
-        };
+      // For "daily summary", we'll just join the tags to form a text.
+      // This part might need more sophisticated logic based on actual requirements for daily summary content.
+      const dailySummaryText = `Daily notes based on tags: ${selectedTags.join(', ')}.`;
+      const submissionResult = await submitDailySummary({ text: dailySummaryText });
+
+      if (submissionResult.error) {
+        setCustomInsightError(submissionResult.error);
       } else {
-        newInsight = await generateCustomTagInsight(selectedTags);
+        // Optionally, display a success message from submissionResult.message
+        console.log("Daily summary submitted:", submissionResult.message);
+        // Add the submitted text as a "custom insight" for immediate feedback, though it's not a true "insight" from Gemini anymore.
+        // This part can be refactored if "custom insights" have a different meaning now.
+        const newPseudoInsight: TagInsightItem = {
+          id: generateInsightId(selectedTags, 'submitted-daily', Date.now()),
+          tags: selectedTags,
+          summary: `Submitted: "${dailySummaryText}" (Count: ${submissionResult.current_summary_count})`,
+          recommendation: "This has been added to the backend for the next retrospective generation.",
+          count: 1, // Represents one submission
+        };
+        setCustomInsights(prev => [newPseudoInsight, ...prev]);
+
+        // IMPORTANT: After submitting a daily summary, refresh the main retrospective.
+        fetchBackendRetrospective();
       }
-      // Assign an ID to the new custom insight
-      const newCustomInsightWithId = {
-        ...newInsight,
-        id: newInsight.id || generateInsightId(newInsight.tags, 'custom', Date.now()) 
-      };
-      setCustomInsights(prev => [newCustomInsightWithId, ...prev]);
 
     } catch (err) {
-      console.error("Failed to generate custom insight:", err);
-      setCustomInsightError(err instanceof Error ? err.message : "An unknown error occurred generating the custom insight.");
+      console.error("Failed to submit daily summary via backend:", err);
+      setCustomInsightError(err instanceof Error ? err.message : "An unknown error occurred submitting the daily summary.");
     } finally {
       setIsGeneratingCustomInsight(false);
     }
   };
 
+  // The existing mock data generation for insights if API_KEY is missing can be removed or adapted
+  // if parts of the UI still depend on it and are not covered by the backend.
+  // For now, `handleGenerateCustomInsight` does not use `generateCustomTagInsight` from geminiService.
+
   const currentPromotedApiInsights = useMemo(() => {
+    // This will be empty if allApiInsights is cleared by fetchBackendRetrospective
     return allApiInsights.filter(insight => promotedInsightIds.has(insight.id!));
   }, [allApiInsights, promotedInsightIds]);
 
