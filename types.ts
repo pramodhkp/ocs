@@ -1,4 +1,3 @@
-
 export enum AlertTag {
   NOISY = "Noisy",
   SUPPRESSED = "Suppressed",
@@ -99,3 +98,31 @@ export interface StatisticalInsightsData {
 }
 
 export type AppTab = 'retrospectiveSummary' | 'statisticalInsights';
+
+// --- Mock Data Structures for Daily and Retrospective Summaries ---
+
+export interface DailySummaryItem {
+  id: string;
+  timestamp: string; // ISO 8601 format
+  title: string;
+  description: string;
+  graph_analysis: string; // LLM generated summary of graph impact
+  nodes_affected: string[]; // List of nodes/services affected
+  tags: string[]; // Tags generated for this item
+}
+
+export interface DailySummary {
+  date: string; // YYYY-MM-DD
+  items: DailySummaryItem[];
+}
+
+export interface GeneratedRetrospectiveSummary {
+  id: string;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  tags: string[]; // The tags this retrospective is focused on
+  insights: string; // LLM generated insights based on items matching tags
+  relatedDailySummaryIds: string[]; // IDs of daily summaries used
+  // Could also include a direct list of relevant DailySummaryItem objects
+  // relevantItems: DailySummaryItem[];
+}
