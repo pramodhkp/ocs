@@ -1,0 +1,6 @@
+{
+  "name": "Oncall Retrospective Summarizer",
+  "description": "An AI-powered web application to generate insightful summaries of oncall shifts, helping SREs and operations teams identify key issues, trends, and areas for improvement.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
